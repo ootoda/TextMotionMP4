@@ -28,6 +28,7 @@ TextMotionMP4.py (テキストを動画にするソフト)
 ## 動作環境
 
 Pythonで動作します。
+
 Windows / macOS / Linux 対応（Tkinter GUI対応環境が必要）
 
 必要なライブラリ：
@@ -45,7 +46,9 @@ Pillow
 ## 使い方
 
 1.　コマンドプロンプトから以下を打ち込んで、ライブラリをインストールしてください。
+
 　　pip install opencv-python numpy Pillow
+　
 2.　TextMotionMP4.py　 を実行します。
 
 3.　「テキストファイル選択」から、表示したいテキスト（.txt）ファイルを選択します。
