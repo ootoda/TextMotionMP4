@@ -48,7 +48,8 @@ Pillow
 1.　コマンドプロンプトから以下を打ち込んで、ライブラリをインストールしてください。
 
 　　pip install opencv-python numpy Pillow
-　
+
+
 2.　TextMotionMP4.py　 を実行します。
 
 3.　「テキストファイル選択」から、表示したいテキスト（.txt）ファイルを選択します。
