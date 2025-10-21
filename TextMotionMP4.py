@@ -4,12 +4,13 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 import os
+import random
 
 class TextToVideoApp:
     def __init__(self, root):
         self.root = root
         self.root.title("テキスト動画作成アプリ")
-        self.root.geometry("700x750")
+        self.root.geometry("700x950")
         
         # テキストファイルパス
         self.text_file_path = tk.StringVar()
@@ -22,16 +23,23 @@ class TextToVideoApp:
         self.bg_color = tk.StringVar(value="#000000")
         self.text_color = tk.StringVar(value="#FFFFFF")
         
-        # 新機能：動画サイズ
+        # 新機能:動画サイズ
         self.video_width = tk.IntVar(value=1920)
         self.video_height = tk.IntVar(value=1080)
         self.preset_size = tk.StringVar(value="1920x1080")
         
-        # 新機能：フォント読み込み設定
+        # 新機能:フォント読み込み設定
         self.load_all_fonts = tk.BooleanVar(value=False)
         
-        # 新機能：自動改行
+        # 新機能:自動改行
         self.auto_wrap = tk.BooleanVar(value=False)
+        
+        # 新機能:ランダム設定
+        self.random_font_size = tk.BooleanVar(value=False)
+        self.random_size_min = tk.IntVar(value=50)
+        self.random_size_max = tk.IntVar(value=100)
+        self.random_position = tk.BooleanVar(value=False)
+        self.random_font = tk.BooleanVar(value=False)
         
         self.create_widgets()
         self.load_available_fonts()
@@ -44,13 +52,11 @@ class TextToVideoApp:
         tk.Entry(file_frame, textvariable=self.text_file_path, width=50).pack(side="left", padx=5)
         tk.Button(file_frame, text="参照", command=self.select_text_file).pack(side="left")
         
-
-        
         # 設定
         settings_frame = tk.LabelFrame(self.root, text="設定", padx=10, pady=10)
         settings_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
-        # 動画サイズ設定（新機能）
+        # 動画サイズ設定
         video_size_frame = tk.LabelFrame(settings_frame, text="動画サイズ", padx=10, pady=5)
         video_size_frame.pack(fill="x", pady=5)
         
@@ -103,7 +109,7 @@ class TextToVideoApp:
                                        width=30, state="readonly")
         self.font_combo.pack(side="left", padx=5)
         
-        # フォント読み込み設定（新機能）
+        # フォント読み込み設定
         font_load_frame = tk.Frame(settings_frame)
         font_load_frame.pack(fill="x", pady=5)
         tk.Checkbutton(font_load_frame, text="フォントフォルダ内のすべてのフォントを読み込む", 
@@ -122,9 +128,35 @@ class TextToVideoApp:
         tk.Entry(color_frame, textvariable=self.text_color, width=10).pack(side="left", padx=5)
         tk.Button(color_frame, text="選択", command=self.choose_text_color).pack(side="left")
         
-
         tk.Checkbutton(settings_frame, text="テキストが画面からはみ出す場合、自動改行する", 
                       variable=self.auto_wrap).pack(anchor="w", pady=2)
+        
+        # ランダム設定
+        random_frame = tk.LabelFrame(settings_frame, text="ランダム設定", padx=10, pady=5)
+        random_frame.pack(fill="x", pady=5)
+        
+        # フォントサイズランダム
+        random_size_check = tk.Checkbutton(random_frame, text="フォントサイズをランダム化", 
+                                          variable=self.random_font_size)
+        random_size_check.pack(anchor="w", pady=2)
+        
+        random_size_range = tk.Frame(random_frame)
+        random_size_range.pack(fill="x", padx=20, pady=2)
+        tk.Label(random_size_range, text="サイズ範囲:").pack(side="left")
+        tk.Spinbox(random_size_range, from_=10, to=500, increment=5, 
+                   textvariable=self.random_size_min, width=8).pack(side="left", padx=5)
+        tk.Label(random_size_range, text="ピクセル  〜").pack(side="left", padx=(5, 0))
+        tk.Spinbox(random_size_range, from_=10, to=500, increment=5, 
+                   textvariable=self.random_size_max, width=8).pack(side="left", padx=5)
+        tk.Label(random_size_range, text="ピクセル").pack(side="left")
+        
+        # 位置ランダム
+        tk.Checkbutton(random_frame, text="表示位置をランダム化", 
+                      variable=self.random_position).pack(anchor="w", pady=2)
+        
+        # フォントランダム
+        tk.Checkbutton(random_frame, text="フォントをランダム化", 
+                      variable=self.random_font).pack(anchor="w", pady=2)
         
         # プログレスバー
         self.progress_frame = tk.Frame(self.root)
@@ -158,10 +190,8 @@ class TextToVideoApp:
         elif preset == "640x480 (SD)":
             self.video_width.set(640)
             self.video_height.set(480)
-        # "カスタム"の場合は何もしない
     
     def reload_fonts(self):
-        """フォント読み込み設定が変更されたときに再読み込み"""
         self.load_available_fonts()
     
     def load_available_fonts(self):
@@ -193,12 +223,11 @@ class TextToVideoApp:
                             font_path = os.path.join(root_dir, file)
                             font_name = os.path.splitext(file)[0]
                             
-                            # 重複チェック
                             if font_name not in self.font_paths:
                                 fonts.append(font_name)
                                 self.font_paths[font_name] = font_path
         else:
-            # デフォルト：厳選されたフォントのみ
+            # デフォルト:厳選されたフォントのみ
             windows_fonts = [
                 ("MS Gothic", "C:\\Windows\\Fonts\\msgothic.ttc"),
                 ("MS Mincho", "C:\\Windows\\Fonts\\msmincho.ttc"),
@@ -209,8 +238,8 @@ class TextToVideoApp:
             ]
             
             mac_fonts = [
-                ("Hiragino Sans", "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc"),
-                ("Hiragino Mincho", "/System/Library/Fonts/ヒラギノ明朝 ProN.ttc"),
+                ("Hiragino Sans", "/System/Library/Fonts/Hiragino Sans W3.ttc"),
+                ("Hiragino Mincho", "/System/Library/Fonts/Hiragino Mincho ProN.ttc"),
                 ("Arial", "/System/Library/Fonts/Supplemental/Arial.ttf"),
                 ("Times New Roman", "/System/Library/Fonts/Supplemental/Times New Roman.ttf"),
             ]
@@ -229,7 +258,7 @@ class TextToVideoApp:
                     self.font_paths[font_name] = font_path
         
         if fonts:
-            fonts.sort()  # アルファベット順にソート
+            fonts.sort()
             self.font_combo['values'] = fonts
             if not self.selected_font.get() or self.selected_font.get() not in fonts:
                 self.selected_font.set(fonts[0])
@@ -244,14 +273,6 @@ class TextToVideoApp:
         )
         if file:
             self.text_file_path.set(file)
-    
-    def select_bg_image(self):
-        file = filedialog.askopenfilename(
-            title="背景画像を選択",
-            filetypes=[("Image files", "*.png *.jpg *.jpeg *.bmp"), ("All files", "*.*")]
-        )
-        if file:
-            self.bg_image_path.set(file)
     
     def choose_bg_color(self):
         from tkinter import colorchooser
@@ -269,9 +290,27 @@ class TextToVideoApp:
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
     
-    def load_font(self):
-        font_name = self.selected_font.get()
+    def load_font(self, use_random=False):
         font_size = self.font_size.get()
+        
+        # ランダムサイズ設定（絶対値指定）
+        if self.random_font_size.get():
+            min_size = self.random_size_min.get()
+            max_size = self.random_size_max.get()
+            # 最小値と最大値が逆転していないかチェック
+            if min_size > max_size:
+                min_size, max_size = max_size, min_size
+            font_size = random.randint(min_size, max_size)
+        
+        # ランダムフォント設定
+        if self.random_font.get() and use_random:
+            available_fonts = list(self.font_paths.keys())
+            if available_fonts:
+                font_name = random.choice(available_fonts)
+            else:
+                font_name = self.selected_font.get()
+        else:
+            font_name = self.selected_font.get()
         
         if font_name in self.font_paths:
             try:
@@ -282,11 +321,9 @@ class TextToVideoApp:
         return ImageFont.load_default()
     
     def wrap_text(self, text, font, max_width):
-        """テキストを指定幅で自動改行"""
         lines = []
         words = text
         
-        # 1文字ずつチェックして改行
         current_line = ""
         for char in words:
             test_line = current_line + char
@@ -311,16 +348,15 @@ class TextToVideoApp:
         img = Image.new('RGB', video_size, bg_color_rgb)
         
         draw = ImageDraw.Draw(img)
-        font = self.load_font()
+        font = self.load_font(use_random=True)
         text_color_rgb = self.hex_to_rgb(self.text_color.get())
         
         # 自動改行が有効な場合
         if self.auto_wrap.get():
-            margin = 40  # 左右のマージン
+            margin = 40
             max_width = video_size[0] - (margin * 2)
             lines = self.wrap_text(text, font, max_width)
             
-            # 複数行のテキストを描画
             total_height = 0
             line_heights = []
             for line in lines:
@@ -329,29 +365,38 @@ class TextToVideoApp:
                 line_heights.append(line_height)
                 total_height += line_height
             
-            # 行間を追加
             line_spacing = 10
             total_height += line_spacing * (len(lines) - 1)
             
-            # 垂直中央揃えの開始位置
-            y = (video_size[1] - total_height) // 2
+            if self.random_position.get():
+                max_x = max(0, video_size[0] - max_width - margin)
+                max_y = max(0, video_size[1] - total_height)
+                base_x = random.randint(margin, max_x) if max_x > margin else margin
+                y = random.randint(0, max_y) if max_y > 0 else 0
+            else:
+                base_x = margin
+                y = (video_size[1] - total_height) // 2
             
             for i, line in enumerate(lines):
                 bbox = draw.textbbox((0, 0), line, font=font)
                 text_width = bbox[2] - bbox[0]
-                x = (video_size[0] - text_width) // 2
+                x = base_x + (max_width - text_width) // 2
                 
                 draw.text((x, y), line, font=font, fill=text_color_rgb)
                 y += line_heights[i] + line_spacing
         else:
-            # 自動改行なし（元の動作）
             bbox = draw.textbbox((0, 0), text, font=font)
             text_width = bbox[2] - bbox[0]
             text_height = bbox[3] - bbox[1]
             
-            # 中央配置
-            x = (video_size[0] - text_width) // 2
-            y = (video_size[1] - text_height) // 2
+            if self.random_position.get():
+                max_x = max(0, video_size[0] - text_width)
+                max_y = max(0, video_size[1] - text_height)
+                x = random.randint(0, max_x) if max_x > 0 else 0
+                y = random.randint(0, max_y) if max_y > 0 else 0
+            else:
+                x = (video_size[0] - text_width) // 2
+                y = (video_size[1] - text_height) // 2
             
             draw.text((x, y), text, font=font, fill=text_color_rgb)
         
@@ -363,7 +408,6 @@ class TextToVideoApp:
             messagebox.showerror("エラー", "有効なテキストファイルを選択してください")
             return
         
-        # テキストを読み込み
         try:
             with open(text_file, 'r', encoding='utf-8') as f:
                 lines = [line.strip() for line in f.readlines() if line.strip()]
@@ -375,7 +419,6 @@ class TextToVideoApp:
             messagebox.showerror("エラー", "テキストファイルが空です")
             return
         
-        # 出力ファイル名を選択
         output_file = filedialog.asksaveasfilename(
             defaultextension=".mp4",
             filetypes=[("MP4 files", "*.mp4"), ("All files", "*.*")],
@@ -386,7 +429,6 @@ class TextToVideoApp:
             return
         
         try:
-            # カスタム動画サイズを使用
             video_size = (self.video_width.get(), self.video_height.get())
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             fps = self.fps.get()
@@ -402,10 +444,8 @@ class TextToVideoApp:
                 self.progress_label.config(text=f"処理中: {idx+1}/{total_lines} - {line[:50]}...")
                 self.root.update()
                 
-                # フレームを作成
                 frame = self.create_text_frame(line, video_size)
                 
-                # フレームを追加
                 for _ in range(frames_per_line):
                     out.write(frame)
                 
